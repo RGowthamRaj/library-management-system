@@ -36,12 +36,14 @@ const bookSchema = new mongoose.Schema(
         return this.totalCopies;
       },
       validate: {
+        // Enforce availableCopies <= totalCopies at the schema level to guard against race conditions or data anomalies
         validator: function (val) {
           return this.totalCopies === undefined || val <= this.totalCopies;
         },
         message: 'Available copies cannot exceed total copies',
       },
     },
+    // We use a UUID for uniqueBookId instead of MongoDB _id to prevent database ID leakage when embedding identifiers into printable QR codes
     uniqueBookId: {
       type: String,
       unique: true,
@@ -52,9 +54,10 @@ const bookSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes for fast catalog search & filtering
+// Single-field B-tree indexes optimize high-frequency regex and category catalog lookups
 bookSchema.index({ title: 1 });
 bookSchema.index({ author: 1 });
 bookSchema.index({ category: 1 });
 
 module.exports = mongoose.model('Book', bookSchema);
+

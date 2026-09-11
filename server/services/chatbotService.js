@@ -7,11 +7,12 @@ class ChatbotService {
       const error = new Error(
         'Gemini API key is not configured. Please set GEMINI_API_KEY in your .env file.'
       );
+      // Return 503 Service Unavailable so client UI knows the service is unconfigured rather than failing internally
       error.statusCode = 503;
       throw error;
     }
 
-    // Fetch current library inventory
+    // Query inventory with .lean() to build a lightweight context payload for the prompt without Mongoose hydration overhead
     const books = await Book.find().lean();
     const bookContext = books.map((b) => ({
       title: b.title,
@@ -23,7 +24,8 @@ class ChatbotService {
     }));
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemma-4-12b-it' });
+    // Selected lightweight instruction-tuned model for fast inference and cost efficiency
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `You are a helpful library assistant for a Library Management System. Here is the current library inventory:
 
@@ -43,10 +45,12 @@ Provide a helpful, concise answer based on the library data above. If the data i
       return response.text();
     } catch (apiError) {
       console.error('Gemini API error:', apiError.message);
+      // Categorize upstream LLM API failures as 502 Bad Gateway to separate third-party downtime from internal server exceptions
       const error = new Error('Failed to get response from AI assistant. Please try again later.');
       error.statusCode = 502;
       throw error;
     }
+
   }
 }
 

@@ -3,6 +3,7 @@ const { Parser } = require('json2csv');
 
 class ExportService {
   async exportTransactionHistory() {
+    // Populate referenced book documents and lean() to flatten relations into plain tabular structures for Excel/Sheets
     const transactions = await Transaction.find().populate('bookId').lean();
 
     const data = transactions.map((t) => ({
@@ -29,6 +30,7 @@ class ExportService {
       Status: t.status.charAt(0).toUpperCase() + t.status.slice(1),
     }));
 
+    // Explicit field whitelist guarantees deterministic column order in the downloaded CSV across all rows
     const fields = [
       'Book Title',
       'Book Author',
@@ -44,6 +46,7 @@ class ExportService {
     const parser = new Parser({ fields });
     return parser.parse(data.length > 0 ? data : [{}]);
   }
+
 }
 
 module.exports = new ExportService();

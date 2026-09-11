@@ -6,8 +6,10 @@ export default function QRCodeDisplay({ value, size = 128 }) {
 
   useEffect(() => {
     if (value) {
+      // Generate client-side Data URL rather than hitting a backend API to achieve zero-latency QR generation
       QRCode.toDataURL(value, {
         width: size,
+        // Margin of 2 modules provides the necessary quiet zone for optical scanners while conserving space on book labels
         margin: 2,
         color: {
           dark: '#1e1b4b',
@@ -18,6 +20,7 @@ export default function QRCodeDisplay({ value, size = 128 }) {
         .catch((err) => console.error('QR generation error:', err));
     }
   }, [value, size]);
+
 
   if (!value) return null;
 

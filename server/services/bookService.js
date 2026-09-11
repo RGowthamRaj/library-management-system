@@ -5,6 +5,7 @@ class BookService {
   async getAllBooks(filters = {}) {
     const query = {};
 
+    // Used case-insensitive regex ($options: 'i') to allow forgiving partial matches for patron title and author searches
     if (filters.title) {
       query.title = { $regex: filters.title, $options: 'i' };
     }
@@ -19,6 +20,7 @@ class BookService {
       query.availableCopies = { $eq: 0 };
     }
 
+    // Default to newest additions first so librarians immediately see recently cataloged acquisitions
     return await Book.find(query).sort({ createdAt: -1 });
   }
 
@@ -43,6 +45,7 @@ class BookService {
   }
 
   async createBook(bookData) {
+    // We generate a UUID for the QR code payload instead of MongoDB _id to prevent internal database ID leakage
     const uniqueBookId = uuidv4();
     const book = new Book({
       ...bookData,
@@ -60,11 +63,12 @@ class BookService {
       throw error;
     }
 
-    // Recalculate available copies if totalCopies changed
+    // When total stock is adjusted, preserve current borrow counts by subtracting actively checked-out copies
     if (bookData.totalCopies !== undefined) {
       const issuedCopies = book.totalCopies - book.availableCopies;
       bookData.availableCopies = Math.max(0, bookData.totalCopies - issuedCopies);
     }
+
 
     Object.assign(book, bookData);
     return await book.save();

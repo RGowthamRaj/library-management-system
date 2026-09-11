@@ -4,6 +4,7 @@ import { Camera, CameraOff, Keyboard } from 'lucide-react';
 
 export default function QRScanner({ onScan }) {
   const [isScanning, setIsScanning] = useState(false);
+  // Provide manual UUID fallback for devices without camera hardware or with denied camera permissions
   const [manualInput, setManualInput] = useState('');
   const [showManual, setShowManual] = useState(false);
   const [error, setError] = useState('');
@@ -17,6 +18,7 @@ export default function QRScanner({ onScan }) {
       scannerRef.current = scanner;
 
       await scanner.start(
+        // Default to rear environment-facing camera on mobile phones for optimal book scanning
         { facingMode: 'environment' },
         {
           fps: 10,
@@ -40,6 +42,7 @@ export default function QRScanner({ onScan }) {
   const stopScanner = async () => {
     if (scannerRef.current) {
       try {
+        // Only stop if actively scanning (state === 2 / SCANNING) to avoid invalid state exceptions on fast unmount
         const state = scannerRef.current.getState();
         if (state === 2) {
           await scannerRef.current.stop();
@@ -52,6 +55,7 @@ export default function QRScanner({ onScan }) {
     }
     setIsScanning(false);
   };
+
 
   const handleManualSubmit = (e) => {
     e.preventDefault();

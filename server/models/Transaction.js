@@ -35,9 +35,12 @@ const transactionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Indexes for query performance (dashboard stats, overdue calculation, active borrowings)
+// Compound index on { bookId: 1, status: 1 } ensures return lookups find the active borrow record in O(log N) time without scanning closed transactions
 transactionSchema.index({ bookId: 1, status: 1 });
+// Indexing borrowerEmail speeds up history filtering when auditing a specific patron's borrowings
 transactionSchema.index({ borrowerEmail: 1 });
+// Indexing status and issueDate together drastically accelerates overdue date filtering for the admin analytics dashboard
 transactionSchema.index({ status: 1, issueDate: -1 });
 
 module.exports = mongoose.model('Transaction', transactionSchema);
+

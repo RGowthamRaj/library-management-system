@@ -10,7 +10,6 @@ class TransactionService {
       throw error;
     }
 
-    // Find the book by unique ID
     const book = await Book.findOne({ uniqueBookId });
     if (!book) {
       const error = new Error('Book not found');
@@ -18,14 +17,13 @@ class TransactionService {
       throw error;
     }
 
-    // Check availability
+    // Verify copy availability before checkout to safeguard against race conditions on the last physical copy
     if (book.availableCopies <= 0) {
       const error = new Error('No copies available');
       error.statusCode = 400;
       throw error;
     }
 
-    // Create transaction
     const transaction = new Transaction({
       bookId: book._id,
       borrowerName,
@@ -33,7 +31,7 @@ class TransactionService {
     });
     await transaction.save();
 
-    // Decrement available copies
+    // Immediately decrement availableCopies to maintain synchronized inventory state across concurrent patrons
     book.availableCopies -= 1;
     await book.save();
 
@@ -47,7 +45,6 @@ class TransactionService {
       throw error;
     }
 
-    // Find the book
     const book = await Book.findOne({ uniqueBookId });
     if (!book) {
       const error = new Error('Book not found');
@@ -55,7 +52,7 @@ class TransactionService {
       throw error;
     }
 
-    // Find the most recent active transaction for this book
+    // Resolves the most recent active loan (issueDate: -1) so the latest checkout record closes first
     const transaction = await Transaction.findOne({
       bookId: book._id,
       status: 'issued',
@@ -67,12 +64,11 @@ class TransactionService {
       throw error;
     }
 
-    // Update transaction
     transaction.returnDate = new Date();
     transaction.status = 'returned';
     await transaction.save();
 
-    // Increment available copies
+    // Restores inventory count immediately so other patrons can issue the returned copy right away
     book.availableCopies += 1;
     await book.save();
 
@@ -83,5 +79,6 @@ class TransactionService {
     return await Transaction.find().populate('bookId').sort({ createdAt: -1 });
   }
 }
+
 
 module.exports = new TransactionService();
