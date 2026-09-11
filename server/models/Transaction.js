@@ -35,4 +35,9 @@ const transactionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes for query performance (dashboard stats, overdue calculation, active borrowings)
+transactionSchema.index({ bookId: 1, status: 1 });
+transactionSchema.index({ borrowerEmail: 1 });
+transactionSchema.index({ status: 1, issueDate: -1 });
+
 module.exports = mongoose.model('Transaction', transactionSchema);
